@@ -51,9 +51,13 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\PowerPickup.cs" />
     <Compile Include="Assets\Scripts\PlayerAbility.cs" />
+    <Compile Include="Assets\_Heathen Engineering\Samples\UX Examples\Flat Icons [Free]\ToggleSetAnimatorBoolean.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
     <Compile Include="Assets\Scripts\Enemy_AI.cs" />
     <Compile Include="Assets\Scripts\Player_Health.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\_Heathen Engineering\Documentation\UX\Flat Icons [Free]\Read Me.txt" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
