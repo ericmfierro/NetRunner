@@ -8,19 +8,22 @@ public class Enemy : MonoBehaviour
     State previousState;
 
     Transform player;
+    Rigidbody2D rb;
+    Animator animator;
 
     [Header("Movement")]
     [SerializeField] float patrolSpeed = 1.5f;
     [SerializeField] float chaseSpeed = 3f;
+
     Vector2 patrolTarget;
-    Vector2 moveDirection = Vector2.right;
+    Vector2 moveDirection;
 
     [Header("Vision")]
     [SerializeField] float visionRange = 6f;
     [SerializeField] float visionAngle = 60f;
     [SerializeField] LayerMask visionBlockers;
 
-    [Header("Search Memory")]
+    [Header("Search")]
     [SerializeField] float searchTime = 2f;
     float searchTimer;
     Vector2 lastKnownPlayerPos;
@@ -28,13 +31,19 @@ public class Enemy : MonoBehaviour
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+
         ChooseNewPatrolPoint();
     }
 
     void Update()
     {
         if (currentState == State.Frozen)
+        {
+            UpdateAnimator(Vector2.zero);
             return;
+        }
 
         if (CanSeePlayer())
         {
@@ -49,47 +58,53 @@ public class Enemy : MonoBehaviour
 
         switch (currentState)
         {
-            case State.Patrol: Patrol(); break;
-            case State.Chase: Chase(); break;
-            case State.Search: Search(); break;
+            case State.Patrol:
+                Patrol();
+                break;
+
+            case State.Chase:
+                Chase();
+                break;
+
+            case State.Search:
+                Search();
+                break;
         }
+
+        UpdateAnimator(moveDirection);
+    }
+
+    void FixedUpdate()
+    {
+        rb.MovePosition(rb.position + moveDirection * GetCurrentSpeed() * Time.fixedDeltaTime);
     }
 
     // ---------------- PATROL ----------------
     void Patrol()
     {
-        Vector2 dir = (patrolTarget - (Vector2)transform.position).normalized;
-        moveDirection = dir;
+        moveDirection = (patrolTarget - rb.position).normalized;
 
-        transform.position = Vector2.MoveTowards(transform.position, patrolTarget, patrolSpeed * Time.deltaTime);
-
-        if (Vector2.Distance(transform.position, patrolTarget) < 0.2f)
+        if (Vector2.Distance(rb.position, patrolTarget) < 0.2f)
             ChooseNewPatrolPoint();
     }
 
     void ChooseNewPatrolPoint()
     {
-        patrolTarget = (Vector2)transform.position + Random.insideUnitCircle * 4f;
+        patrolTarget = rb.position + Random.insideUnitCircle * 4f;
     }
 
     // ---------------- CHASE ----------------
     void Chase()
     {
-        Vector2 dir = (player.position - transform.position).normalized;
-        moveDirection = dir;
-
-        transform.position = Vector2.MoveTowards(transform.position, player.position, chaseSpeed * Time.deltaTime);
+        moveDirection = ((Vector2)player.position - rb.position).normalized;
     }
 
     // ---------------- SEARCH ----------------
     void Search()
     {
-        Vector2 dir = (lastKnownPlayerPos - (Vector2)transform.position).normalized;
-        moveDirection = dir;
+        moveDirection = (lastKnownPlayerPos - rb.position).normalized;
 
-        transform.position = Vector2.MoveTowards(transform.position, lastKnownPlayerPos, patrolSpeed * Time.deltaTime);
-
-        if (Vector2.Distance(transform.position, lastKnownPlayerPos) < 0.2f)
+        if (Vector2.Distance(rb.position, lastKnownPlayerPos) < 0.2f)
         {
             searchTimer -= Time.deltaTime;
             if (searchTimer <= 0)
@@ -97,28 +112,48 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // ---------------- VISION SYSTEM ----------------
+    float GetCurrentSpeed()
+    {
+        if (currentState == State.Chase)
+            return chaseSpeed;
+
+        return patrolSpeed;
+    }
+
+    // ---------------- ANIMATION ----------------
+    void UpdateAnimator(Vector2 direction)
+    {
+        bool isMoving = direction != Vector2.zero;
+
+        animator.SetBool("isMoving", isMoving);
+        animator.SetFloat("moveX", direction.x);
+        animator.SetFloat("moveY", direction.y);
+    }
+
+    // ---------------- VISION ----------------
     bool CanSeePlayer()
     {
-        Vector2 directionToPlayer = player.position - transform.position;
-        float distance = directionToPlayer.magnitude;
+        Vector2 toPlayer = (Vector2)player.position - rb.position;
+        float distance = toPlayer.magnitude;
 
         if (distance > visionRange)
             return false;
 
-        float angle = Vector2.Angle(moveDirection, directionToPlayer);
+        float angle = Vector2.Angle(moveDirection, toPlayer);
         if (angle > visionAngle / 2f)
             return false;
 
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, directionToPlayer.normalized, distance, visionBlockers);
+        RaycastHit2D hit = Physics2D.Raycast(
+            rb.position,
+            toPlayer.normalized,
+            distance,
+            visionBlockers
+        );
 
-        if (hit.collider != null)
-            return false;
-
-        return true;
+        return hit.collider == null;
     }
 
-    // ---------------- FREEZE (ENCRYPTION BLAST) ----------------
+    // ---------------- FREEZE ----------------
     public void Freeze(float duration)
     {
         previousState = currentState;
@@ -132,10 +167,9 @@ public class Enemy : MonoBehaviour
         currentState = previousState;
     }
 
-    // ---------------- COLLISION SYSTEM ----------------
+    // ---------------- COLLISION ----------------
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // If player has blade active → enemy dies
         PlayerAbility ability = collision.gameObject.GetComponent<PlayerAbility>();
         if (ability != null && ability.bladeActive)
         {
@@ -143,25 +177,11 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // Otherwise enemy damages player
         if (collision.collider.CompareTag("Player"))
         {
             Player_Health health = collision.collider.GetComponent<Player_Health>();
             if (health != null)
                 health.TakeDamage(1);
-        }
-    }
-
-    // ---------------- DEBUG VISION GIZMOS ----------------
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, visionRange);
-
-        if (Application.isPlaying)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(transform.position, transform.position + (Vector3)moveDirection * visionRange);
         }
     }
 }

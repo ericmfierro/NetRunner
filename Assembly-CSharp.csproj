@@ -52,6 +52,7 @@
     <Compile Include="Assets\Scripts\PowerPickup.cs" />
     <Compile Include="Assets\Scripts\PlayerAbility.cs" />
     <Compile Include="Assets\_Heathen Engineering\Samples\UX Examples\Flat Icons [Free]\ToggleSetAnimatorBoolean.cs" />
+    <Compile Include="Assets\Scripts\Enemy_Spawner.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
     <Compile Include="Assets\Scripts\Enemy_AI.cs" />
     <Compile Include="Assets\Scripts\Player_Health.cs" />
