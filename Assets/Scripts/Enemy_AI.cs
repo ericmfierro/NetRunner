@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.Tilemaps;
 
-public class Enemy : MonoBehaviour
+public class Enemy_AI : MonoBehaviour
 {
     enum State { Patrol, Chase, Search, Frozen }
     State currentState = State.Patrol;
@@ -12,8 +12,9 @@ public class Enemy : MonoBehaviour
     Animator animator;
 
     [Header("Movement")]
-    [SerializeField] float patrolSpeed = 1.5f;
-    [SerializeField] float chaseSpeed = 3f;
+    [SerializeField] float patrolSpeed = 5f;
+    [SerializeField] float chaseSpeed = 7f;
+    [SerializeField] float patrolRadius = 4f;
 
     Vector2 patrolTarget;
     Vector2 moveDirection;
@@ -28,19 +29,39 @@ public class Enemy : MonoBehaviour
     float searchTimer;
     Vector2 lastKnownPlayerPos;
 
+    [Header("Tilemap")]
+    [SerializeField] Tilemap floorTilemap;
+
     void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+
+        if (floorTilemap == null)
+        {
+            Tilemap[] maps = FindObjectsOfType<Tilemap>();
+
+            foreach (Tilemap map in maps)
+            {
+                if (map.gameObject.name == "Tilemap")
+                {
+                    floorTilemap = map;
+                    break;
+                }
+            }
+        }
 
         ChooseNewPatrolPoint();
     }
 
     void Update()
     {
+        if (player == null) return;
+
         if (currentState == State.Frozen)
         {
+            moveDirection = Vector2.zero;
             UpdateAnimator(Vector2.zero);
             return;
         }
@@ -79,7 +100,6 @@ public class Enemy : MonoBehaviour
         rb.MovePosition(rb.position + moveDirection * GetCurrentSpeed() * Time.fixedDeltaTime);
     }
 
-    // ---------------- PATROL ----------------
     void Patrol()
     {
         moveDirection = (patrolTarget - rb.position).normalized;
@@ -90,16 +110,32 @@ public class Enemy : MonoBehaviour
 
     void ChooseNewPatrolPoint()
     {
-        patrolTarget = rb.position + Random.insideUnitCircle * 4f;
+        if (floorTilemap == null)
+        {
+            patrolTarget = rb.position;
+            return;
+        }
+
+        for (int i = 0; i < 20; i++)
+        {
+            Vector2 randomPoint = rb.position + Random.insideUnitCircle * patrolRadius;
+            Vector3Int cellPos = floorTilemap.WorldToCell(randomPoint);
+
+            if (floorTilemap.HasTile(cellPos))
+            {
+                patrolTarget = floorTilemap.GetCellCenterWorld(cellPos);
+                return;
+            }
+        }
+
+        patrolTarget = rb.position;
     }
 
-    // ---------------- CHASE ----------------
     void Chase()
     {
         moveDirection = ((Vector2)player.position - rb.position).normalized;
     }
 
-    // ---------------- SEARCH ----------------
     void Search()
     {
         moveDirection = (lastKnownPlayerPos - rb.position).normalized;
@@ -107,6 +143,7 @@ public class Enemy : MonoBehaviour
         if (Vector2.Distance(rb.position, lastKnownPlayerPos) < 0.2f)
         {
             searchTimer -= Time.deltaTime;
+
             if (searchTimer <= 0)
                 currentState = State.Patrol;
         }
@@ -114,32 +151,35 @@ public class Enemy : MonoBehaviour
 
     float GetCurrentSpeed()
     {
-        if (currentState == State.Chase)
-            return chaseSpeed;
-
-        return patrolSpeed;
+        return currentState == State.Chase ? chaseSpeed : patrolSpeed;
     }
 
-    // ---------------- ANIMATION ----------------
     void UpdateAnimator(Vector2 direction)
     {
-        bool isMoving = direction != Vector2.zero;
+        if (animator == null) return;
 
+        bool isMoving = direction.sqrMagnitude > 0.01f;
         animator.SetBool("isMoving", isMoving);
         animator.SetFloat("moveX", direction.x);
         animator.SetFloat("moveY", direction.y);
     }
 
-    // ---------------- VISION ----------------
     bool CanSeePlayer()
     {
+        if (player == null)
+            return false;
+
         Vector2 toPlayer = (Vector2)player.position - rb.position;
         float distance = toPlayer.magnitude;
 
         if (distance > visionRange)
             return false;
 
-        float angle = Vector2.Angle(moveDirection, toPlayer);
+        Vector2 forward = moveDirection;
+        if (forward == Vector2.zero)
+            forward = (patrolTarget - rb.position).normalized;
+
+        float angle = Vector2.Angle(forward, toPlayer);
         if (angle > visionAngle / 2f)
             return false;
 
@@ -153,35 +193,34 @@ public class Enemy : MonoBehaviour
         return hit.collider == null;
     }
 
-    // ---------------- FREEZE ----------------
-    public void Freeze(float duration)
+    public void SetFrozen(bool state)
     {
-        previousState = currentState;
-        StartCoroutine(FreezeRoutine(duration));
+        if (state)
+        {
+            previousState = currentState;
+            currentState = State.Frozen;
+        }
+        else
+        {
+            currentState = previousState;
+        }
     }
 
-    IEnumerator FreezeRoutine(float time)
+    void OnTriggerEnter2D(Collider2D collision)
     {
-        currentState = State.Frozen;
-        yield return new WaitForSeconds(time);
-        currentState = previousState;
-    }
+        if (!collision.CompareTag("Player"))
+            return;
 
-    // ---------------- COLLISION ----------------
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        PlayerAbility ability = collision.gameObject.GetComponent<PlayerAbility>();
-        if (ability != null && ability.bladeActive)
+        PlayerAbility ability = collision.GetComponent<PlayerAbility>();
+
+        if (ability != null && ability.IsBusterActive())
         {
             Destroy(gameObject);
             return;
         }
 
-        if (collision.collider.CompareTag("Player"))
-        {
-            Player_Health health = collision.collider.GetComponent<Player_Health>();
-            if (health != null)
-                health.TakeDamage(1);
-        }
+        Player_Health health = collision.GetComponent<Player_Health>();
+        if (health != null)
+            health.TakeDamage(1);
     }
 }

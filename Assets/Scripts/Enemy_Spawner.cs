@@ -14,6 +14,8 @@ public class Enemy_Spawner : MonoBehaviour
     [SerializeField] int maxEnemies = 20;
 
     int currentEnemies = 0;
+    public int CurrentEnemyCount() => currentEnemies;
+
 
     void Start()
     {

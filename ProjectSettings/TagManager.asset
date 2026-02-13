@@ -50,11 +50,11 @@ TagManager:
   - name: Buildings
     uniqueID: 1239013125
     locked: 0
-  - name: Player
-    uniqueID: 2753668983
-    locked: 0
   - name: Props
     uniqueID: 714791557
+    locked: 0
+  - name: Player
+    uniqueID: 2753668983
     locked: 0
   m_RenderingLayers:
   - Default

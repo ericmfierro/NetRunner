@@ -1,31 +1,56 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerAbility : MonoBehaviour
 {
-    public bool bladeActive = false;
+    private bool busterActive = false;
+    private bool freezeActive = false;
 
-    [SerializeField] float bladeDuration = 5f;
-    [SerializeField] float freezeDuration = 3f;
+    public bool IsBusterActive() => busterActive;
 
-    public void ActivateBlade()
+    public void ActivateBuster(float duration)
     {
-        StartCoroutine(BladeRoutine());
+        if (!busterActive)
+            StartCoroutine(BusterRoutine(duration));
     }
 
-    System.Collections.IEnumerator BladeRoutine()
+    private IEnumerator BusterRoutine(float duration)
     {
-        bladeActive = true;
-        Debug.Log("Buster Blade active!");
-        yield return new WaitForSeconds(bladeDuration);
-        bladeActive = false;
+        busterActive = true;
+        Debug.Log("Buster Blade Activated");
+
+        yield return new WaitForSeconds(duration);
+
+        busterActive = false;
+        Debug.Log("Buster Blade Ended");
     }
 
-    public void ActivateFreeze()
+    public void ActivateFreeze(float duration)
     {
-        Enemy[] enemies = FindObjectsOfType<Enemy>();
-        foreach (Enemy e in enemies)
-            e.Freeze(freezeDuration);
+        if (!freezeActive)
+            StartCoroutine(FreezeRoutine(duration));
+    }
 
-        Debug.Log("Encryption Blast used!");
+    private IEnumerator FreezeRoutine(float duration)
+    {
+        freezeActive = true;
+
+        Enemy_AI[] enemies = FindObjectsOfType<Enemy_AI>();
+
+        foreach (Enemy_AI e in enemies)
+            e.SetFrozen(true);
+
+        Debug.Log("Enemies Frozen");
+
+        yield return new WaitForSeconds(duration);
+
+        enemies = FindObjectsOfType<Enemy_AI>();
+
+        foreach (Enemy_AI e in enemies)
+            e.SetFrozen(false);
+
+        freezeActive = false;
+
+        Debug.Log("Freeze Ended");
     }
 }
