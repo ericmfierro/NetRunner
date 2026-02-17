@@ -5,6 +5,7 @@ public class Player_Health : MonoBehaviour
 {
     [SerializeField] int maxHealth = 3;
     [SerializeField] float invincibilityDuration = 2f;
+    [SerializeField] AudioSource hitSound;
 
     int currentHealth;
     bool isInvincible = false;
@@ -27,6 +28,9 @@ public class Player_Health : MonoBehaviour
         currentHealth -= amount;
         Debug.Log("Player HP: " + currentHealth);
 
+        if (hitSound != null)
+            hitSound.Play();
+
         if (currentHealth <= 0)
         {
             Die();
@@ -40,8 +44,6 @@ public class Player_Health : MonoBehaviour
     IEnumerator InvincibilityCoroutine()
     {
         isInvincible = true;
-
-        // Optional: disable collider so enemy can't hit repeatedly
         playerCollider.enabled = false;
 
         float timer = 0f;
@@ -66,8 +68,10 @@ public class Player_Health : MonoBehaviour
     {
         Debug.Log("Player Defeated!");
 
-        // Disable player movement if needed
+        // Disable player movement/visibility
         gameObject.SetActive(false);
+
+        // GameManager will detect HP <= 0 in Update()
     }
 
     public int CurrentHealth() => currentHealth;
