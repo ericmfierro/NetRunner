@@ -68765,11 +68765,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 133941224209286208, guid: 5ccef3c3a7d9b8f49a9a3f899699d19a, type: 3}
       propertyPath: slowSpeed
-      value: 5
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 133941224209286208, guid: 5ccef3c3a7d9b8f49a9a3f899699d19a, type: 3}
       propertyPath: regularSpeed
-      value: 10
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 388192262631574285, guid: 5ccef3c3a7d9b8f49a9a3f899699d19a, type: 3}
       propertyPath: m_Name

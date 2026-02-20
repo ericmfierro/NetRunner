@@ -118,8 +118,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fd3f3876b13d7a4aa852e33669b5295, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy_AI
-  patrolSpeed: 5
-  chaseSpeed: 7
+  patrolSpeed: 4
+  chaseSpeed: 6
   patrolRadius: 4
   visionRange: 6
   visionAngle: 60
